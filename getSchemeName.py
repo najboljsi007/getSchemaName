@@ -99,7 +99,7 @@ while 1:
         os.chdir(extractedFolderPath)
         metaDataPlist = extractedFolderPath + "/iTunesMetadata.plist"
         parsed_plist_metadata = biplist.readPlist(metaDataPlist)
-        print ("}BundleID: " + parsed_plist_metadata["softwareVersionBundleId"])
+        print ("BundleID: " + parsed_plist_metadata["softwareVersionBundleId"])
         storeFile.write("BundleID: " + parsed_plist_metadata["softwareVersionBundleId"] + "\n\n")
 
 
