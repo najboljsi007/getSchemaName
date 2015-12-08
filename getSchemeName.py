@@ -8,6 +8,9 @@ import biplist
 from time import gmtime, strftime
 import subprocess
 
+#Set enconding to utf8 used for extracting files
+reload(sys)
+sys.setdefaultencoding('utf8')
 
 while 1:
 #Set and Reset package counter
