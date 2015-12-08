@@ -2,15 +2,31 @@
 # author MKnavs
 
 import os, sys, glob
+import shutil
 import zipfile
 import getpass
 import biplist
 from time import gmtime, strftime
+import sys
 import subprocess
+
+
+#----------------SETTINGS-----------------#
+saveHistory = "True"
+deleteExtractedFolder = "True"
+deleteApp = "False"
+openHistoryInFinder = "False"
+#----------------SETTINGS-----------------#
+
 
 #Set enconding to utf8 used for extracting files
 reload(sys)
 sys.setdefaultencoding('utf8')
+
+#Saves all schemes into list
+schemesList = []
+schemeNameNotExists = False
+
 
 while 1:
 #Set and Reset package counter
@@ -19,6 +35,7 @@ while 1:
 #Clear screen and get computer username and change dir
     os.system('clear')
     computer_username = getpass.getuser()
+    mobileApplicationspath = "/Music/iTunes/iTunes Media/Mobile Applications/"
     workingDirPath = "/Users/" + computer_username + "/Music/iTunes/iTunes Media/Mobile Applications/"
     os.chdir(workingDirPath)
 
@@ -35,21 +52,23 @@ while 1:
     if packageCounter == 0:
         print "No packages available. Download new apps via iTunes ...\n"
 
-#If x selected, open history in finder
+#Additional selection X - History
     print "[X] URL Schemes History"
 
 #Enter number of the package
     appNum = raw_input("\nEnter the number of the package: ")
+
 #Open history
     try:
         if appNum == "x" or appNum == "X":
-#Uncomment to directly open Scheme History
-            os.system("open /Users/" + computer_username + "/Music/iTunes/iTunes\ Media/Mobile\ Applications/URLSchemesHistory.txt")
-#Uncomment to open in Finder
-            #subprocess.call(["open", "-R", workingDirPath + "URLSchemesHistory.txt"])
-            break
+            if openHistoryInFinder != "True":
+                os.system("open /Users/" + computer_username + "/Music/iTunes/iTunes\ Media/Mobile\ Applications/URLSchemesHistory.txt")
+            else:
+                subprocess.call(["open", "-R", workingDirPath + "URLSchemesHistory.txt"])
+            sys.exit()
     except ValueError:
-        break
+        print "History does not exist yet or some error occurred ..."
+        sys.exit()
 
 #Start unziping process
     appName = file_list[int(appNum)]
@@ -74,15 +93,13 @@ while 1:
 
 
 #Get URL Schemes and blacklist which are not correct
-    blacklist = ["CFBundleURLName", "CFBundleTypeRole"]
+    blacklist = ["CFBundleURLName", "CFBundleTypeRole", "SchemeType"]
 
 #Timestamp for history .txt
     runTimestamp = strftime("%Y-%m-%d %H:%M:%S", gmtime())
 
 #Search for Scheme name and write to file
-    storeFile.write(runTimestamp + "\n")
     print("|---- SCHEME NAME and BUNDLE ID FOR %s: -----|\n" %appName)
-    storeFile.write("|----- SCHEME NAME and BUNDLE ID FOR %s: -----|\n" %appName)
     os.chdir(payloadPath)
     for file_app in glob.glob("*.app"):
         plist_path = payloadPath + file_app + "/Info.plist"
@@ -93,17 +110,37 @@ while 1:
                 for h in i.keys():
                     if h not in blacklist:
                         print "%s : %s" % (h, str(i[h]))
-                        storeFile.write("%s : %s\n" % (h, str(i[h])))
+                        schemesList.append(str(i[h]))
+
         except KeyError:
             print "CFBundleURLTypes does not exist for selected app!"
-            storeFile.write("CFBundleURLTypes does not exist for selected app!\n")
+            schemeNameNotExists = True
 
- #Print BundleId
+#Print BundleId
         os.chdir(extractedFolderPath)
         metaDataPlist = extractedFolderPath + "/iTunesMetadata.plist"
         parsed_plist_metadata = biplist.readPlist(metaDataPlist)
-        print ("BundleID: " + parsed_plist_metadata["softwareVersionBundleId"])
-        storeFile.write("BundleID: " + parsed_plist_metadata["softwareVersionBundleId"] + "\n\n")
+        print ("\nBundleID: " + parsed_plist_metadata["softwareVersionBundleId"])
+
+#Save info to history - saveHistory -settings:
+        if saveHistory != "False":
+            storeFile.write(runTimestamp + "\n")
+            storeFile.write("|----- SCHEME NAME and BUNDLE ID FOR %s: -----|\n" %appName)
+            if schemeNameNotExists == False:
+                storeFile.write("Scheme names: ")
+                storeFile.write("\n              ".join(schemesList))
+            else:
+                storeFile.write("CFBundleURLTypes does not exist for selected app!\n")
+            storeFile.write("\nBundleID: " + parsed_plist_metadata["softwareVersionBundleId"] + "\n\n")
+
+#Remove extracted dir - deleteExtractedFolder = False -settings
+    if deleteExtractedFolder == "True":
+        shutil.rmtree(extractedFolderPath)
+
+#Remove downloaded app .ipa file - deleteApp -settings
+    if deleteApp == "True":
+       os.remove(workingDirPath + appNameNew)
+
 
 
     print("\n")
